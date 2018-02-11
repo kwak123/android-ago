@@ -31,7 +31,9 @@ public class RelativeTimeTextView extends TextView {
     private String mSuffix;
     private Handler mHandler = new Handler();
     private UpdateTimeRunnable mUpdateTimeTask;
-    private boolean isUpdateTaskRunning = false;
+    private boolean mIsUpdateTaskRunning = false;
+
+    private TimeService mTimeService;
 
     public RelativeTimeTextView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -71,8 +73,7 @@ public class RelativeTimeTextView extends TextView {
     }
 
     /**
-     * Returns prefix
-     * @return
+     * @return current prefix
      */
     public String getPrefix() {
         return this.mPrefix;
@@ -91,8 +92,7 @@ public class RelativeTimeTextView extends TextView {
     }
 
     /**
-     * Returns suffix
-     * @return
+     * @return current suffix
      */
     public String getSuffix() {
         return this.mSuffix;
@@ -111,6 +111,14 @@ public class RelativeTimeTextView extends TextView {
     }
 
     /**
+     *
+     * @param timeService set a custom time service interface
+     */
+    public void setTimeService(TimeService timeService) {
+        this.mTimeService = timeService;
+    }
+
+    /**
      * Sets the reference time for this view. At any moment, the view will render a relative time period relative to the time set here.
      * <p/>
      * This value can also be set with the XML attribute {@code reference_time}
@@ -121,7 +129,7 @@ public class RelativeTimeTextView extends TextView {
         
         /*
          * Note that this method could be called when a row in a ListView is recycled.
-         * Hence, we need to first stop any currently running schedules (for example from the recycled view.
+         * Hence, we need to first stop any currently running schedules (for example from the recycled view).
          */
         stopTaskForPeriodicallyUpdatingRelativeTime();
         
@@ -147,14 +155,15 @@ public class RelativeTimeTextView extends TextView {
          */
         if (this.mReferenceTime == -1L)
             return;
-        setText(mPrefix + getRelativeTimeDisplayString() + mSuffix);
+        // TODO: SK, add a resource string to handle this?
+        String newText = mPrefix + getRelativeTimeDisplayString(System.currentTimeMillis()) + mSuffix;
+        setText(newText);
     }
 
-    private CharSequence getRelativeTimeDisplayString() {
-        long now = System.currentTimeMillis();
+    private CharSequence getRelativeTimeDisplayString(long now) {
         long difference = now - mReferenceTime; 
-        return (difference >= 0 &&  difference<=DateUtils.MINUTE_IN_MILLIS) ? 
-                getResources().getString(R.string.just_now): 
+        return (difference >= 0 && difference <= DateUtils.MINUTE_IN_MILLIS) ?
+                getResources().getString(R.string.just_now) :
                 DateUtils.getRelativeTimeSpanString(
                     mReferenceTime,
                     now,
@@ -186,9 +195,9 @@ public class RelativeTimeTextView extends TextView {
     }
 
     private void startTaskForPeriodicallyUpdatingRelativeTime() {
-        if(mUpdateTimeTask.isDetached()) initUpdateTimeTask();
+        if (mUpdateTimeTask.isDetached()) { initUpdateTimeTask(); }
         mHandler.post(mUpdateTimeTask);
-        isUpdateTaskRunning = true;
+        mIsUpdateTaskRunning = true;
     }
 
     private void initUpdateTimeTask() {
@@ -196,10 +205,10 @@ public class RelativeTimeTextView extends TextView {
     }
 
     private void stopTaskForPeriodicallyUpdatingRelativeTime() {
-        if(isUpdateTaskRunning) {
+        if (mIsUpdateTaskRunning) {
             mUpdateTimeTask.detach();
             mHandler.removeCallbacks(mUpdateTimeTask);
-            isUpdateTaskRunning = false;
+            mIsUpdateTaskRunning = false;
         }
     }
 
@@ -218,7 +227,7 @@ public class RelativeTimeTextView extends TextView {
             return;
         }
 
-        SavedState ss = (SavedState)state;
+        SavedState ss = (SavedState) state;
         mReferenceTime = ss.referenceTime;
         super.onRestoreInstanceState(ss.getSuperState());
     }
@@ -274,7 +283,7 @@ public class RelativeTimeTextView extends TextView {
         @Override
         public void run() {
             RelativeTimeTextView rttv = weakRefRttv.get();
-            if (rttv == null) return;
+            if (rttv == null) { return; }
             long difference = Math.abs(System.currentTimeMillis() - mRefTime);
             long interval = INITIAL_UPDATE_INTERVAL;
             if (difference > DateUtils.WEEK_IN_MILLIS) {
@@ -286,7 +295,10 @@ public class RelativeTimeTextView extends TextView {
             }
             rttv.updateTextDisplay();
             rttv.mHandler.postDelayed(this, interval);
-
         }
+    }
+
+    public interface TimeService {
+        long getCurrentTime();
     }
 }
