@@ -69,7 +69,12 @@ public class RelativeTimeTextView extends TextView {
         }
 
         setReferenceTime(mReferenceTime);
-
+        mTimeService = new TimeService() {
+            @Override
+            public long getCurrentTime() {
+                return System.currentTimeMillis();
+            }
+        };
     }
 
     /**
@@ -112,7 +117,7 @@ public class RelativeTimeTextView extends TextView {
 
     /**
      *
-     * @param timeService set a custom time service interface
+     * @param timeService set a custom TimeService
      */
     public void setTimeService(TimeService timeService) {
         this.mTimeService = timeService;
@@ -156,11 +161,12 @@ public class RelativeTimeTextView extends TextView {
         if (this.mReferenceTime == -1L)
             return;
         // TODO: SK, add a resource string to handle this?
-        String newText = mPrefix + getRelativeTimeDisplayString(System.currentTimeMillis()) + mSuffix;
+        String newText = mPrefix + getRelativeTimeDisplayString() + mSuffix;
         setText(newText);
     }
 
-    private CharSequence getRelativeTimeDisplayString(long now) {
+    private CharSequence getRelativeTimeDisplayString() {
+        long now = mTimeService.getCurrentTime();
         long difference = now - mReferenceTime; 
         return (difference >= 0 && difference <= DateUtils.MINUTE_IN_MILLIS) ?
                 getResources().getString(R.string.just_now) :
@@ -298,6 +304,9 @@ public class RelativeTimeTextView extends TextView {
         }
     }
 
+    /**
+     * Abstracted time fetching service, with default implementation of
+     */
     public interface TimeService {
         long getCurrentTime();
     }
