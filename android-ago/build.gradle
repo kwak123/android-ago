@@ -17,6 +17,14 @@ android {
             res.srcDirs = ['res']
         }
     }
+    repositories {
+        maven { url 'http://repo1.maven.org/maven2' }
+    }
+}
+
+dependencies {
+    // JUnit 4
+    testCompile 'junit:junit:4.12'
 }
 
 apply from: 'maven-publish.gradle'
