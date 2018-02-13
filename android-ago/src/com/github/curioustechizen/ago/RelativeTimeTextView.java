@@ -33,7 +33,7 @@ public class RelativeTimeTextView extends TextView {
     private UpdateTimeRunnable mUpdateTimeTask;
     private boolean mIsUpdateTaskRunning = false;
 
-    private TimeService mTimeService;
+    private static TimeService mTimeService;
 
     public RelativeTimeTextView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -68,13 +68,16 @@ public class RelativeTimeTextView extends TextView {
             mReferenceTime = -1L;
         }
 
+        if (mTimeService == null) {
+            setTimeService(new TimeService() {
+                @Override
+                public long getCurrentTime() {
+                    return System.currentTimeMillis();
+                }
+            });
+        }
+
         setReferenceTime(mReferenceTime);
-        mTimeService = new TimeService() {
-            @Override
-            public long getCurrentTime() {
-                return System.currentTimeMillis();
-            }
-        };
     }
 
     /**
@@ -117,10 +120,11 @@ public class RelativeTimeTextView extends TextView {
 
     /**
      *
+     *
      * @param timeService set a custom TimeService
      */
     public void setTimeService(TimeService timeService) {
-        this.mTimeService = timeService;
+        mTimeService = timeService;
     }
 
     /**
@@ -305,9 +309,15 @@ public class RelativeTimeTextView extends TextView {
     }
 
     /**
-     * Abstracted time fetching service, with default implementation of
+     * RelativeTimeTextView holds a static instance of TimeService to fetch the current time.
+     * The default implementation hooks into System.currentTimeMillis().
      */
     public interface TimeService {
+
+        /**
+         *
+         * @return current time
+         */
         long getCurrentTime();
     }
 }
